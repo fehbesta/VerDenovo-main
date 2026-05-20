@@ -1,0 +1,13 @@
+# Variaveis de ambiente - NUNCA commitar
+.env
+.env.local
+
+# Maven
+target/
+*.jar
+*.war
+
+# IDE
+.idea/
+.vscode/
+*.iml
