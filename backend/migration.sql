@@ -39,6 +39,30 @@ IF COL_LENGTH('Ponto', 'descricao') IS NULL
 IF COL_LENGTH('Ponto', 'logradouro') IS NULL
     ALTER TABLE Ponto ADD logradouro VARCHAR(100) NULL;
 
+IF COL_LENGTH('Ponto', 'bairro') IS NULL
+    ALTER TABLE Ponto ADD bairro VARCHAR(80) NULL;
+
+IF COL_LENGTH('Ponto', 'cidade') IS NULL
+    ALTER TABLE Ponto ADD cidade VARCHAR(80) NULL;
+
+IF COL_LENGTH('Ponto', 'estado') IS NULL
+    ALTER TABLE Ponto ADD estado VARCHAR(2) NULL;
+
+IF COL_LENGTH('Ponto', 'cnpj') IS NULL
+    ALTER TABLE Ponto ADD cnpj VARCHAR(14) NULL;
+
+IF COL_LENGTH('Ponto', 'status_verificacao') IS NULL
+    ALTER TABLE Ponto ADD status_verificacao VARCHAR(30) NULL;
+
+IF COL_LENGTH('Ponto', 'motivo_verificacao') IS NULL
+    ALTER TABLE Ponto ADD motivo_verificacao VARCHAR(500) NULL;
+
+IF COL_LENGTH('Ponto', 'data_verificacao') IS NULL
+    ALTER TABLE Ponto ADD data_verificacao DATETIME2 NULL;
+
+IF COL_LENGTH('Ponto', 'fonte_verificacao') IS NULL
+    ALTER TABLE Ponto ADD fonte_verificacao VARCHAR(50) NULL;
+
 IF COL_LENGTH('Ponto', 'hora_funcionamento') IS NULL
     ALTER TABLE Ponto ADD hora_funcionamento VARCHAR(200) NULL;
 

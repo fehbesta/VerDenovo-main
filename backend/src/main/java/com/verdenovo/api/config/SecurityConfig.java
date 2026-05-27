@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -39,6 +40,12 @@ public class SecurityConfig {
             .csrf(csrf -> csrf
                 .ignoringRequestMatchers("/api/**")
             )
+            .exceptionHandling(exceptions -> exceptions
+                .authenticationEntryPoint((request, response, authException) ->
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED))
+                .accessDeniedHandler((request, response, accessDeniedException) ->
+                    response.sendError(HttpServletResponse.SC_FORBIDDEN))
+            )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
@@ -46,8 +53,13 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/recuperar-senha", "/api/auth/verificar-codigo", "/api/auth/redefinir-senha").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/pontos", "/api/categorias").permitAll()
                 .requestMatchers("/api/pontos/login").permitAll()
-                .requestMatchers("/api/auth/usuarios", "/api/auth/usuarios/**").hasAuthority("ADMIN")
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/auth/usuarios/me").hasAuthority("USER")
+                .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/auth/usuarios/me").hasAuthority("USER")
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/auth/usuarios").authenticated()
+                .requestMatchers("/api/auth/usuarios/**").hasAuthority("ADMIN")
                 .requestMatchers("/api/pontos/todos", "/api/pontos/pendentes").hasAuthority("ADMIN")
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/pontos/me").hasAuthority("PONTO")
+                .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/pontos/me").hasAuthority("PONTO")
                 .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/pontos/*/aprovar").hasAuthority("ADMIN")
                 .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/pontos/*/rejeitar").hasAuthority("ADMIN")
                 .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/pontos/*").authenticated()

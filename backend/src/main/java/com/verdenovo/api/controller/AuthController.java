@@ -35,8 +35,25 @@ public class AuthController {
     }
 
     @GetMapping("/usuarios")
-    public ResponseEntity<List<UsuarioResponse>> listarUsuarios() {
+    public ResponseEntity<List<UsuarioResponse>> listarUsuarios(org.springframework.security.core.Authentication authentication) {
+        if (authentication == null || authentication.getAuthorities().stream()
+                .noneMatch(a -> "ADMIN".equals(a.getAuthority()))) {
+            return ResponseEntity.status(403).build();
+        }
         return ResponseEntity.ok(authService.listarUsuarios());
+    }
+
+    @GetMapping("/usuarios/me")
+    public ResponseEntity<UsuarioResponse> buscarMeuPerfil(org.springframework.security.core.Authentication authentication) {
+        if (authentication == null) return ResponseEntity.status(401).build();
+        return ResponseEntity.ok(authService.buscarUsuarioLogado(authentication.getName()));
+    }
+
+    @PutMapping("/usuarios/me")
+    public ResponseEntity<UsuarioResponse> atualizarMeuPerfil(@RequestBody Usuario usuario,
+            org.springframework.security.core.Authentication authentication) {
+        if (authentication == null) return ResponseEntity.status(401).build();
+        return ResponseEntity.ok(authService.atualizarUsuarioLogado(authentication.getName(), usuario));
     }
 
     @PutMapping("/usuarios/{id}/status")

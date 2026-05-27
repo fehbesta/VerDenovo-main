@@ -21,6 +21,9 @@ public class PontoService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private PontoVerificationService pontoVerificationService;
+
     public Ponto loginPonto(String email, String senha) {
         Ponto ponto = pontoRepository.findByEmailAndStatusPonto(email, "ATIVO")
                 .orElseThrow(() -> new RuntimeException("Credenciais inválidas"));
@@ -41,10 +44,45 @@ public class PontoService {
         ponto.setNumero(pontoAtualizado.getNumero());
         ponto.setComplemento(pontoAtualizado.getComplemento());
         ponto.setLogradouro(pontoAtualizado.getLogradouro());
+        ponto.setBairro(pontoAtualizado.getBairro());
+        ponto.setCidade(pontoAtualizado.getCidade());
+        ponto.setEstado(normalizarEstado(pontoAtualizado.getEstado()));
         ponto.setTelefone(pontoAtualizado.getTelefone());
         ponto.setHoraFuncionamento(pontoAtualizado.getHoraFuncionamento());
         ponto.setMaterial(pontoAtualizado.getMaterial());
         ponto.setDescricao(pontoAtualizado.getDescricao());
+        return pontoRepository.save(ponto);
+    }
+
+    public Ponto buscarPontoLogado(String emailLogado) {
+        if (emailLogado == null || emailLogado.isBlank()) {
+            throw new RuntimeException("Ponto nao autenticado.");
+        }
+        return pontoRepository.findFirstByEmailIgnoreCase(emailLogado)
+                .orElseThrow(() -> new RuntimeException("Ponto nao encontrado para este login."));
+    }
+
+    public Ponto atualizarPontoLogado(Ponto pontoAtualizado, String emailLogado) {
+        Ponto ponto = buscarPontoLogado(emailLogado);
+        boolean enderecoAlterado = enderecoAlterado(ponto, pontoAtualizado);
+
+        ponto.setNome(pontoAtualizado.getNome());
+        ponto.setCep(normalizarCep(pontoAtualizado.getCep()));
+        ponto.setNumero(pontoAtualizado.getNumero());
+        ponto.setComplemento(pontoAtualizado.getComplemento());
+        ponto.setLogradouro(pontoAtualizado.getLogradouro());
+        ponto.setBairro(pontoAtualizado.getBairro());
+        ponto.setCidade(pontoAtualizado.getCidade());
+        ponto.setEstado(normalizarEstado(pontoAtualizado.getEstado()));
+        ponto.setTelefone(pontoAtualizado.getTelefone());
+        ponto.setHoraFuncionamento(pontoAtualizado.getHoraFuncionamento());
+        ponto.setMaterial(pontoAtualizado.getMaterial());
+        ponto.setDescricao(pontoAtualizado.getDescricao());
+
+        if (enderecoAlterado) {
+            revalidarEnderecoAlterado(ponto);
+        }
+
         return pontoRepository.save(ponto);
     }
 
@@ -68,7 +106,52 @@ public class PontoService {
         return emailLogado.equalsIgnoreCase(ponto.getEmail());
     }
 
+    private boolean enderecoAlterado(Ponto atual, Ponto novo) {
+        return mudou(atual.getCep(), normalizarCep(novo.getCep()))
+                || mudou(atual.getNumero(), novo.getNumero())
+                || mudou(atual.getLogradouro(), novo.getLogradouro())
+                || mudou(atual.getBairro(), novo.getBairro())
+                || mudou(atual.getCidade(), novo.getCidade())
+                || mudou(atual.getEstado(), normalizarEstado(novo.getEstado()));
+    }
+
+    private boolean mudou(String atual, String novo) {
+        String a = atual == null ? "" : atual.trim();
+        String n = novo == null ? "" : novo.trim();
+        return !a.equalsIgnoreCase(n);
+    }
+
+    private String normalizarCep(String cep) {
+        if (cep == null) return null;
+        return cep.replaceAll("\\D", "");
+    }
+
+    private String normalizarEstado(String estado) {
+        if (estado == null) return null;
+        String normalizado = estado.replaceAll("[^A-Za-z]", "").toUpperCase();
+        return normalizado.length() > 2 ? normalizado.substring(0, 2) : normalizado;
+    }
+
+    private void revalidarEnderecoAlterado(Ponto ponto) {
+        if (ponto.getCnpj() == null || ponto.getCnpj().isBlank()) {
+            ponto.setStatusVerificacao("PENDENTE_REVISAO");
+            ponto.setMotivoVerificacao("Endereco alterado em ponto antigo sem CNPJ cadastrado.");
+            ponto.setDataVerificacao(LocalDateTime.now());
+            ponto.setFonteVerificacao("Sistema");
+            ponto.setStatusPonto("PENDENTE");
+            return;
+        }
+
+        PontoVerificationService.VerificationDecision decisao = pontoVerificationService.verificar(
+                ponto,
+                emailConfirmadoOuNaoExigido(ponto)
+        );
+        ponto.setStatusPonto(decisao.isAprovadoAutomaticamente() ? "ATIVO" : "PENDENTE");
+    }
+
     public Ponto criarPonto(Ponto ponto, String emailLogado) {
+        validarCnpjNovoPonto(ponto);
+
         if (emailLogado != null) {
             usuarioRepository.findByEmail(emailLogado).ifPresent(u -> {
                 if ("ADMIN".equals(u.getNivelAcesso())) {
@@ -83,7 +166,48 @@ public class PontoService {
         ponto.setDataCadastro(LocalDateTime.now());
         if (ponto.getStatusPonto() == null) ponto.setStatusPonto("PENDENTE");
 
+        boolean criadoPorAdmin = emailLogado != null && usuarioRepository.findByEmail(emailLogado)
+                .map(u -> "ADMIN".equals(u.getNivelAcesso()))
+                .orElse(false);
+        PontoVerificationService.VerificationDecision decisao = pontoVerificationService.verificar(
+                ponto,
+                emailConfirmadoOuNaoExigido(ponto)
+        );
+        if (decisao.isAprovadoAutomaticamente() || criadoPorAdmin) {
+            ponto.setStatusPonto("ATIVO");
+        } else {
+            ponto.setStatusPonto("PENDENTE");
+        }
+
         return pontoRepository.save(ponto);
+    }
+
+    private void validarCnpjNovoPonto(Ponto ponto) {
+        String cnpj = CnpjUtils.normalizar(ponto.getCnpj());
+        if (cnpj.isBlank()) {
+            throw new RuntimeException("CNPJ e obrigatorio para cadastrar um ponto de coleta.");
+        }
+        if (!CnpjUtils.isValido(cnpj)) {
+            throw new RuntimeException("CNPJ invalido. Confira os 14 digitos informados.");
+        }
+        if (pontoRepository.existsByCnpj(cnpj)) {
+            throw new RuntimeException("Ja existe um ponto cadastrado com este CNPJ.");
+        }
+        ponto.setCnpj(cnpj);
+    }
+
+    private boolean emailConfirmadoOuNaoExigido(Ponto ponto) {
+        if (ponto.getUsuarioId() != null) {
+            return usuarioRepository.findById(ponto.getUsuarioId())
+                    .map(u -> "ATIVO".equals(u.getStatusUsuario()))
+                    .orElse(true);
+        }
+        if (ponto.getEmail() != null && !ponto.getEmail().isBlank()) {
+            return usuarioRepository.findByEmail(ponto.getEmail())
+                    .map(u -> "ATIVO".equals(u.getStatusUsuario()))
+                    .orElse(true);
+        }
+        return true;
     }
 
     private void vincularPontoAdmin(Ponto ponto, String emailLogado) {

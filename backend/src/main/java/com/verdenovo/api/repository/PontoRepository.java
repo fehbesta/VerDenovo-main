@@ -11,4 +11,5 @@ public interface PontoRepository extends JpaRepository<Ponto, Long> {
     Optional<Ponto> findFirstByEmailIgnoreCase(String email);
     Optional<Ponto> findByResetToken(String resetToken);
     List<Ponto> findByUsuarioId(Long usuarioId);
+    boolean existsByCnpj(String cnpj);
 }

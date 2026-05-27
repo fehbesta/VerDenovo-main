@@ -31,7 +31,7 @@ public class AuthService {
             throw new RuntimeException("Credenciais inválidas");
         }
         
-        String token = jwtUtil.generateToken(usuario.getEmail());
+        String token = jwtUtil.generateToken(usuario.getEmail(), usuario.getNivelAcesso());
         return new LoginResponse(token, new UsuarioResponse(
             usuario.getId(), usuario.getNome(), usuario.getEmail(),
             usuario.getNivelAcesso(), usuario.getStatusUsuario()));
@@ -55,6 +55,27 @@ public class AuthService {
             .map(u -> new UsuarioResponse(u.getId(), u.getNome(), u.getEmail(),
                 u.getNivelAcesso(), u.getStatusUsuario()))
             .collect(java.util.stream.Collectors.toList());
+    }
+
+    public UsuarioResponse buscarUsuarioLogado(String emailLogado) {
+        Usuario usuario = usuarioRepository.findByEmail(emailLogado)
+            .orElseThrow(() -> new RuntimeException("Usuario nao encontrado"));
+        return new UsuarioResponse(usuario.getId(), usuario.getNome(), usuario.getEmail(),
+            usuario.getNivelAcesso(), usuario.getStatusUsuario());
+    }
+
+    public UsuarioResponse atualizarUsuarioLogado(String emailLogado, Usuario dadosAtualizados) {
+        Usuario usuario = usuarioRepository.findByEmail(emailLogado)
+            .orElseThrow(() -> new RuntimeException("Usuario nao encontrado"));
+
+        if (dadosAtualizados.getNome() == null || dadosAtualizados.getNome().trim().isEmpty()) {
+            throw new RuntimeException("Nome e obrigatorio.");
+        }
+
+        usuario.setNome(dadosAtualizados.getNome().trim());
+        Usuario salvo = usuarioRepository.save(usuario);
+        return new UsuarioResponse(salvo.getId(), salvo.getNome(), salvo.getEmail(),
+            salvo.getNivelAcesso(), salvo.getStatusUsuario());
     }
     
     public void alterarStatusUsuario(Long id) {

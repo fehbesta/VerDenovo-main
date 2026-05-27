@@ -70,6 +70,20 @@ public class PontoController {
             .orElse(ResponseEntity.ok(java.util.List.of()));
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<Ponto> buscarMeuPonto(org.springframework.security.core.Authentication authentication) {
+        if (authentication == null) return ResponseEntity.status(401).build();
+        return ResponseEntity.ok(pontoService.buscarPontoLogado(authentication.getName()));
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<Ponto> atualizarMeuPonto(@RequestBody Ponto pontoAtualizado,
+            org.springframework.security.core.Authentication authentication) {
+        if (authentication == null) return ResponseEntity.status(401).build();
+        Ponto salvo = pontoService.atualizarPontoLogado(pontoAtualizado, authentication.getName());
+        return ResponseEntity.ok(salvo);
+    }
+
     @PutMapping("/{id}/aprovar")
     public ResponseEntity<MessageResponse> aprovarPonto(@PathVariable Long id) {
         Ponto ponto = pontoRepository.findById(id)
@@ -108,7 +122,7 @@ public class PontoController {
     @PostMapping("/login")
     public ResponseEntity<PontoLoginResponse> loginPonto(@RequestBody PontoLoginRequest request) {
         Ponto ponto = pontoService.loginPonto(request.getEmail(), request.getSenha());
-        String token = jwtUtil.generateToken(ponto.getEmail());
+        String token = jwtUtil.generatePontoToken(ponto.getEmail());
         PontoResponse pontoResponse = new PontoResponse(
                 ponto.getId(), ponto.getNome(), ponto.getEmail(),
                 ponto.getCep(), ponto.getNumero(), ponto.getComplemento(),

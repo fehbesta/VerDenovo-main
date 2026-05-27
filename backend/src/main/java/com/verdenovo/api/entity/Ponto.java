@@ -52,6 +52,30 @@ public class Ponto {
     @Column(length = 100)
     private String logradouro;
 
+    @Column(length = 80)
+    private String bairro;
+
+    @Column(length = 80)
+    private String cidade;
+
+    @Column(length = 2)
+    private String estado;
+
+    @Column(length = 14)
+    private String cnpj;
+
+    @Column(name = "status_verificacao", length = 30)
+    private String statusVerificacao;
+
+    @Column(name = "motivo_verificacao", length = 500)
+    private String motivoVerificacao;
+
+    @Column(name = "data_verificacao")
+    private LocalDateTime dataVerificacao;
+
+    @Column(name = "fonte_verificacao", length = 50)
+    private String fonteVerificacao;
+
     @Column(name = "usuario_id")
     private Long usuarioId;
 
@@ -109,6 +133,30 @@ public class Ponto {
 
     public String getLogradouro() { return logradouro; }
     public void setLogradouro(String logradouro) { this.logradouro = logradouro; }
+
+    public String getBairro() { return bairro; }
+    public void setBairro(String bairro) { this.bairro = bairro; }
+
+    public String getCidade() { return cidade; }
+    public void setCidade(String cidade) { this.cidade = cidade; }
+
+    public String getEstado() { return estado; }
+    public void setEstado(String estado) { this.estado = estado; }
+
+    public String getCnpj() { return cnpj; }
+    public void setCnpj(String cnpj) { this.cnpj = cnpj; }
+
+    public String getStatusVerificacao() { return statusVerificacao; }
+    public void setStatusVerificacao(String statusVerificacao) { this.statusVerificacao = statusVerificacao; }
+
+    public String getMotivoVerificacao() { return motivoVerificacao; }
+    public void setMotivoVerificacao(String motivoVerificacao) { this.motivoVerificacao = motivoVerificacao; }
+
+    public LocalDateTime getDataVerificacao() { return dataVerificacao; }
+    public void setDataVerificacao(LocalDateTime dataVerificacao) { this.dataVerificacao = dataVerificacao; }
+
+    public String getFonteVerificacao() { return fonteVerificacao; }
+    public void setFonteVerificacao(String fonteVerificacao) { this.fonteVerificacao = fonteVerificacao; }
 
     public Long getUsuarioId() { return usuarioId; }
     public void setUsuarioId(Long usuarioId) { this.usuarioId = usuarioId; }

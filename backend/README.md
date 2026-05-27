@@ -115,8 +115,17 @@ Recomendadas:
 - `MAIL_PASSWORD`: senha/app password SMTP.
 - `MAIL_SMTP_AUTH`: geralmente `true`.
 - `MAIL_STARTTLS_ENABLE`: geralmente `true`.
+- `CNPJ_API_ENABLED`: habilita a verificacao automatica de CNPJ. Padrao: `true`.
+- `CNPJ_API_BASE_URL`: endpoint base da API publica de CNPJ. Padrao: `https://brasilapi.com.br/api/cnpj/v1`.
+- `CNPJ_API_TIMEOUT_MS`: timeout da consulta externa em milissegundos. Padrao: `3000`.
 
 Tambem existe `backend/.env.example` como modelo. Copie para `.env`, preencha localmente e rode `run.bat` se preferir usar arquivo de ambiente. Nao versione o arquivo `.env`.
+
+## Verificacao automatica de pontos por CNPJ
+
+Novos cadastros de ponto exigem CNPJ valido e unico. O backend normaliza o CNPJ para 14 digitos, consulta a API publica configurada e grava `status_verificacao`, `motivo_verificacao`, `data_verificacao` e `fonte_verificacao`.
+
+Se o CNPJ existir, estiver ativo e a localizacao informada conferir com os dados publicos, o ponto pode ser aprovado automaticamente. Se a API estiver fora, o CNPJ nao existir, estiver inativo ou os dados divergirem, o cadastro continua salvo como pendente para revisao manual do administrador.
 
 ## Endpoints principais
 
@@ -129,11 +138,22 @@ Tambem existe `backend/.env.example` como modelo. Copie para `.env`, preencha lo
 - GET `/api/pontos/todos`
 - GET `/api/pontos/pendentes`
 - GET `/api/pontos/meus`
+- GET `/api/pontos/me`
 - POST `/api/pontos`
+- PUT `/api/pontos/me`
 - PUT `/api/pontos/{id}`
 - DELETE `/api/pontos/{id}`
 - POST `/api/pontos/login`
 - GET `/api/categorias`
+
+## Area do ponto
+
+Pontos de coleta autenticados pelo login de ponto usam:
+
+- `GET /api/pontos/me`: retorna o ponto identificado pelo email do token JWT.
+- `PUT /api/pontos/me`: atualiza apenas campos publicos/editaveis do proprio ponto. O backend ignora `id`, `cnpj`, `senha`, `status_ponto`, status de verificacao e datas enviados no corpo.
+
+Quando CEP, numero, logradouro, bairro, cidade ou UF mudam, o backend reexecuta a verificacao por CNPJ. Se houver divergencia ou a API falhar, o ponto volta para `PENDENTE`, perde o selo `VERIFICADO` e o motivo fica disponivel para revisao manual do admin.
 
 ## Teste manual do fluxo de senha
 

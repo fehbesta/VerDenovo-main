@@ -59,6 +59,22 @@ public class JwtUtil {
         Map<String, Object> claims = new HashMap<>();
         return createToken(claims, username);
     }
+
+    public String generateToken(String username, String nivelAcesso) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("nivelAcesso", nivelAcesso);
+        return createToken(claims, username);
+    }
+
+    public String generatePontoToken(String username) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("tipo", "PONTO");
+        return createToken(claims, username);
+    }
+
+    public String getTipoFromToken(String token) {
+        return getClaimFromToken(token, claims -> claims.get("tipo", String.class));
+    }
     
     private String createToken(Map<String, Object> claims, String subject) {
         return Jwts.builder()
